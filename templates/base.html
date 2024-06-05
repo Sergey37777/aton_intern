@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пользовательский интерфейс</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+	{% block head %}
+	{% endblock %}
+</head>
+<body>
+    <div id="login-form" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <form action="/auth/token" method="POST">
+                <label for="username">Логин:</label>
+                <input type="text" id="username" name="username" required>
+                <label for="password">Пароль:</label>
+                <input type="password" id="password" name="password" required>
+                <button type="submit">Войти</button>
+            </form>
+        </div>
+    </div>
+    <header>
+        <nav>
+            <div class="nav-links">
+                <!-- Место для других ссылок в меню, если нужно -->
+            </div>
+            <div class="auth">
+                {% if token %}
+                <span id="user-greeting" style="display:block;">Здравствуйте, <span id="user">{{ token }}</span></span>
+                <button onclick="login()" id="login-btn" style="display:none;">Войти</button>
+                <button onclick="logout()" id="logout-btn" style="display:block;">Выйти</button>
+                {% else %}
+                <span id="user-greeting" style="display:none;">Здравствуйте, <span id="user">{{ token }}</span></span>
+                <button onclick="register()" id="register-btn">Регистрация</button>
+                <button onclick="login()" id="login-btn">Войти</button>
+                <button onclick="logout()" id="logout-btn" style="display:none;">Выйти</button>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+    <main>
+        {% if token %}
+        <table id="clients-table" style="display:block;">
+        {% else %}
+        <table id="clients-table" style="display:none;">
+        {% endif %}
+            <thead>
+                <tr>
+                    <th>Номер счета</th>
+                    <th>Фамилия</th>
+                    <th>Имя</th>
+                    <th>Отчество</th>
+                    <th>Дата рождения</th>
+                    <th>ИНН</th>
+                    <th>ФИО ответственного</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Данные заполняются динамически -->
+            </tbody>
+        </table>
+    </main>
+    <script src="{{ url_for('static', path='js/app.js')}}"></script>
+</body>
+</html>
