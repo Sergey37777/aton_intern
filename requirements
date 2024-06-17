@@ -1,0 +1,7 @@
+uvicorn==0.12.2
+fastapi==0.29.0
+uvicorn==0.29.0
+bcrypt==4.1.2
+SQLAlchemy==2.0.29
+asyncpg==0.29.0
+Faker==24.9.0
