@@ -21,6 +21,22 @@
             </form>
         </div>
     </div>
+    <div id="register-form" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <form action="/auth/signup" method="POST">
+                <label for="fullname">ФИО:</label>
+                <input type="text" id="fullname" name="full_name" required>
+                <label for="username">Логин:</label>
+                <input type="text" id="reg_username" name="username" required>
+                <label for="password">Пароль:</label>
+                <input type="password" id="reg_password" name="password" required>
+                <label for="reg_confirm-password">Повторите пароль:</label>
+                <input type="password" id="reg_confirm-password" name="password_confirm" required>
+                <button type="submit">Зарегистрироваться</button>
+            </form>
+        </div>
+    </div>
     <header>
         <nav>
             <div class="nav-links">
@@ -30,6 +46,7 @@
                 {% if token %}
                 <span id="user-greeting" style="display:block;">Здравствуйте, <span id="user">{{ token }}</span></span>
                 <button onclick="login()" id="login-btn" style="display:none;">Войти</button>
+                <button onclick="register()" id="register-btn" style="display:none;">Регистрация</button>
                 <button onclick="logout()" id="logout-btn" style="display:block;">Выйти</button>
                 {% else %}
                 <span id="user-greeting" style="display:none;">Здравствуйте, <span id="user">{{ token }}</span></span>
@@ -38,11 +55,18 @@
                 <button onclick="logout()" id="logout-btn" style="display:none;">Выйти</button>
                 {% endif %}
             </div>
+            {% if token %}
+            <div class="sign-up" style="display:none;">
+            {% else %}
+            <div class="sign-up" style="display:block;">
+            {% endif %}
+
+
         </nav>
     </header>
     <main>
         {% if token %}
-        <table id="clients-table" style="display:block;">
+        <table id="clients-table" style="display:block">
         {% else %}
         <table id="clients-table" style="display:none;">
         {% endif %}
@@ -59,7 +83,29 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Данные заполняются динамически -->
+                {% for client in clients %}
+                <tr>
+                    <td>{{ client.account_number }}</td>
+                    <td>{{ client.last_name }}</td>
+                    <td>{{ client.first_name }}</td>
+                    <td>{{ client.middle_name }}</td>
+                    <td>{{ client.birth_date }}</td>
+                    <td>{{ client.inn }}</td>
+                    <td>{{ client.responsible_user.full_name }}</td>
+                    <td>
+                        <form method="post" action="/update-status">
+                            <input type="hidden" name="client_id" value="{{ client.id }}">
+                            <select name="status">
+                                <option value="NOT_IN_WORK" {% if client.status == Status.NOT_IN_WORK %}selected{% endif %}>Не в работе</option>
+                                <option value="IN_WORK" {% if client.status == Status.IN_WORK %}selected{% endif %}>В работе</option>
+                                <option value="DENIED" {% if client.status == Status.DENIED %}selected{% endif %}>Отказ</option>
+                                <option value="DEAL_CLOSED" {% if client.status == Status.DEAL_CLOSED %}selected{% endif %}>Сделка закрыта</option>
+                            </select>
+                            <button type="submit">Изменить</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
             </tbody>
         </table>
     </main>
