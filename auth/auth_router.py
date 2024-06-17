@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, Response, Request, Form
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from datetime import timedelta, datetime
@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from database.engine import get_async_session
 from database.models import User
+from config import SECRET_KEY
 
 # Секретный ключ для создания JWT
-SECRET_KEY = "your_secret_key_here"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -63,7 +63,6 @@ async def authenticate_user(username: str, password: str, session: AsyncSession)
     stmt = select(User).filter(User.login == username)
     user = await session.execute(stmt)
     user = user.scalars().first()
-    print('User is: ', user)
     if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         return user
     return None  # Замените на реальную проверку
@@ -74,13 +73,11 @@ async def get_current_user(request: Request, session: AsyncSession = Depends(get
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     try:
-        print(f"Token: {token}")  # Отладочное сообщение
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     except JWTError as e:
-        print(f"JWT Error: {e}")  # Отладочное сообщение
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
 
     stmt = select(User).where(User.login == username)
@@ -91,7 +88,7 @@ async def get_current_user(request: Request, session: AsyncSession = Depends(get
     return user
 
 
-async def get_username(request: Request):
+async def get_username(request: Request, response: Response, session: AsyncSession = Depends(get_async_session)):
     token = request.cookies.get("access_token")
     if not token:
         return None
@@ -100,10 +97,33 @@ async def get_username(request: Request):
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+        stmt = select(User).where(User.login == username)
+        result = await session.execute(stmt)
+        user = result.scalars().first()
+        if user is None:
+            return None
     except JWTError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
 
     return username
+
+
+@router.post('/signup')
+async def signup(full_name: str = Form(...), username: str = Form(...), password: str = Form(...),
+                 password_confirm: str = Form(...),
+                 session: AsyncSession = Depends(get_async_session)):
+    if password != password_confirm:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match")
+    stmt = select(User).where(User.login == username)
+    result = await session.execute(stmt)
+    user = result.scalars().first()
+    if user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    new_user = User(full_name=full_name, login=username, password=hashed_password.decode('utf-8'))
+    session.add(new_user)
+    await session.commit()
+    return {"message": "User created successfully"}
 
 
 @router.get("/users/me")
